@@ -1,15 +1,11 @@
 import streamlit as st
 from audiocraft.models import MusicGen
-from audiocraft.data.audio import audio_write
 from datetime import datetime
-import os
 import torch
+import io
+import soundfile as sf
 
 st.title("🎵 Lofi Music Generator")
-
-# --- Create output folder ---
-OUTPUT_FOLDER = "generated_music"
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # --- Load model once ---
 @st.cache_resource
@@ -31,17 +27,17 @@ style_keywords = ["cyberpunk", "japanese", "piano only", "jazz", "ambient", "ret
 selected_mood = st.multiselect(
     "🎯 Mood",
     options=mood_keywords,
-    help="Pick the vibe you want to capture (study, workout, relax, etc.)"
+    help="Pick the vibe you want to capture."
 )
 selected_atmosphere = st.multiselect(
     "🌌 Atmosphere",
     options=atmosphere_keywords,
-    help="Pick the environment or ambiance (cafe, forest, rain, etc.)"
+    help="Pick the environment or ambiance."
 )
 selected_style = st.multiselect(
     "🎼 Style",
     options=style_keywords,
-    help="Pick the musical style or influence (cyberpunk, piano only, jazz, etc.)"
+    help="Pick the musical style or influence."
 )
 
 # --- Combine all selected keywords ---
@@ -49,7 +45,7 @@ all_selected_keywords = selected_mood + selected_atmosphere + selected_style
 
 st.markdown("---")
 
-# --- Updated duration options ---
+# --- Duration options ---
 duration_map = {"5 seconds": 5, "10 seconds": 10, "30 seconds": 30, "60 seconds": 60}
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]
@@ -61,7 +57,7 @@ waiting_time_map = {str(sec) + " seconds": int(sec / 5 * 15) for sec in duration
 def generate_filename(prompt):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_prompt = prompt.replace(" ", "_")
-    return f"{timestamp}_{safe_prompt}"
+    return f"{timestamp}_{safe_prompt}.wav"
 
 # --- Generate music ---
 est_time = waiting_time_map[duration_choice]
@@ -80,19 +76,17 @@ if st.button(button_label):
             model.set_generation_params(duration=duration)
             audio = model.generate([prompt])
 
-        # Save audio
-        filename = generate_filename(prompt)
-        output_base = os.path.join(OUTPUT_FOLDER, filename)
-        audio_write(output_base, audio[0].cpu(), model.sample_rate, strategy="loudness")
-        wav_path = f"{output_base}.wav"
+        # Save audio to memory instead of disk
+        wav_io = io.BytesIO()
+        sf.write(wav_io, audio[0].cpu().numpy().T, model.sample_rate, format="WAV")
+        wav_io.seek(0)
 
-        # Play and download
+        # Play and download from memory
         st.success("✅ Music generated!")
-        st.audio(wav_path)
-        with open(wav_path, "rb") as f:
-            st.download_button(
-                label="⬇️ Download your track",
-                data=f,
-                file_name=os.path.basename(wav_path),
-                mime="audio/wav"
-            )
+        st.audio(wav_io, format="audio/wav")
+        st.download_button(
+            label="⬇️ Download your track",
+            data=wav_io,
+            file_name=generate_filename(prompt),
+            mime="audio/wav"
+        )
