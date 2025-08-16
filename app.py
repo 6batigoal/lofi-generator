@@ -5,7 +5,7 @@ import torch
 import io
 import soundfile as sf
 
-st.title("🎵 Lofi Music Generator")
+st.title("🎵 Lo-fi Music Generator")
 
 # --- Load model once ---
 @st.cache_resource
@@ -13,15 +13,15 @@ def load_model():
     return MusicGen.get_pretrained("facebook/musicgen-small")
 
 model = load_model()
-st.text("✅ Lofi-generator loaded, time to spin!")
+st.text("✅ Lo-fi generator loaded, time to give it a spin!")
 
 # --- User inputs ---
-fixed_keyword = "lofi"
+fixed_keyword = "lo-fi"
 
 # --- Keyword categories ---
 mood_keywords = ["study", "workout", "relax", "focus", "chill"]
-atmosphere_keywords = ["cafe", "forest", "rain", "beach", "mountains", "city"]
-style_keywords = ["cyberpunk", "japanese", "piano only", "jazz", "ambient", "retro"]
+atmosphere_keywords = ["cafe", "forest", "rain", "beach", "mountains", "city", "space"]
+style_keywords = ["cyberpunk", "japanese", "piano only", "jazz", "ambient", "retro", "flute"]
 
 # --- User selects from each category ---
 selected_mood = st.multiselect(
