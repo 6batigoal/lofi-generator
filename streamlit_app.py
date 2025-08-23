@@ -3,15 +3,9 @@ import requests
 from datetime import datetime
 import os
 
-# Determine backend API URL
-# Use Cloud Run API URL if available
-API_URL = os.environ.get("CLOUD_RUN_API_URL")
-if API_URL is None:
-    # fallback to local ngrok URL
-    with open("backend_url.txt", "r") as f:
-        API_URL = f.read().strip() + "/generate_music"
-else:
-    API_URL = API_URL + "/generate_music"
+# Read backend URL
+with open("backend_url.txt", "r") as f:
+    API_URL = f.read().strip() + "/generate_music"
 
 st.set_page_config(page_title="AI Music Generator", page_icon="🎵", layout="centered")
 st.title("🎶 AI Music Generator")
@@ -56,11 +50,11 @@ if st.button(button_label):
             try:
                 params = { "prompt": prompt, "duration": duration }
                 response = requests.get(API_URL, params=params)
-            except Exception as e:
-                st.error(f"❌ Failed to reach backend API: {e}")
-                st.stop()
+            except requests.exceptions.RequestException as e:
+                st.error(f"❌ Request failed: {e}")
+                response = None
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             output_file = generate_filename(prompt)
             with open(output_file, "wb") as f:
                 f.write(response.content)
@@ -68,5 +62,5 @@ if st.button(button_label):
             st.audio(output_file, format="audio/wav")
             with open(output_file, "rb") as f:
                 st.download_button("⬇️ Download your track", f, file_name=os.path.basename(output_file))
-        else:
+        elif response:
             st.error(f"❌ Failed to generate music. Status code: {response.status_code}")
