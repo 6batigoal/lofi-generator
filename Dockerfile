@@ -1,18 +1,25 @@
-# Use official Python 3.11 slim image
+# Use official Python image
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files into container
-COPY . /app
+# Copy requirements first to leverage caching
+COPY requirements.txt .
 
-# Upgrade pip and install dependencies
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
-# Expose port 8000 for FastAPI
-EXPOSE 8000
+# Copy the rest of the application code
+COPY . .
 
-# Run FastAPI app with Uvicorn
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Expose port 8080 (Cloud Run default)
+EXPOSE 8080
+
+# Set environment variables
+ENV DEVICE=cpu
+ENV PORT=8080
+
+# Run the FastAPI app with Uvicorn
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]
