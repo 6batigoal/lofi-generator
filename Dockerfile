@@ -15,14 +15,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy the rest of the application code
 COPY . .
 
-# Expose ports
-EXPOSE 8080 8501
+# Expose port 8080 (Cloud Run default)
+EXPOSE 8080
 
 # Set environment variables
 ENV DEVICE=cpu
 ENV PORT=8080
-ENV STREAMLIT_PORT=8501
 
-# Final command: run FastAPI directly
+# Run the FastAPI app with Uvicorn (Cloud Run needs this)
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
-
