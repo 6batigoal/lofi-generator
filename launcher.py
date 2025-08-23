@@ -2,12 +2,8 @@ import threading
 import subprocess
 import time
 import socket
-from pyngrok import ngrok
 import sys
 import os
-
-# Kill any existing ngrok tunnels
-ngrok.kill()
 
 # Function to wait until a local port is ready
 def wait_for_port(host: str, port: int, timeout_sec: int = 60):
@@ -24,48 +20,54 @@ def wait_for_port(host: str, port: int, timeout_sec: int = 60):
 # Start FastAPI backend
 def run_api():
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8080))  # Cloud Run provides PORT
+    uvicorn.run("api:app", host="0.0.0.0", port=port)
 
 threading.Thread(target=run_api, daemon=True).start()
 
-# Wait a few seconds for backend to start
-print("Waiting for backend API...")
-wait_for_port("127.0.0.1", 8000, timeout_sec=60)
+# Local dev: use ngrok for exposing backend and Streamlit
+if not os.environ.get("CLOUD_RUN_API_URL"):
+    from pyngrok import ngrok
+    ngrok.kill()
 
-# Create ngrok tunnel for backend
-api_tunnel = ngrok.connect(8000)
-with open("backend_url.txt", "w") as f:
-    f.write(api_tunnel.public_url)
-print("✅ Backend API ready at:", api_tunnel.public_url + "/generate_music")
+    # Wait for backend to start
+    print("Waiting for backend API...")
+    wait_for_port("127.0.0.1", 8000, timeout_sec=60)
 
-# Start Streamlit frontend in the same venv
-def run_streamlit():
-    python_exe = sys.executable  # ensures same venv
-    subprocess.run([
-        python_exe,
-        "-m",
-        "streamlit",
-        "run",
-        "streamlit_app.py",
-        "--server.port=8501",
-        "--server.address=0.0.0.0"
-    ])
+    # Create ngrok tunnel for backend
+    api_tunnel = ngrok.connect(8000)
+    with open("backend_url.txt", "w") as f:
+        f.write(api_tunnel.public_url)
+    print("✅ Backend API ready at:", api_tunnel.public_url + "/generate_music")
 
-threading.Thread(target=run_streamlit, daemon=True).start()
+    # Start Streamlit frontend in the same venv
+    def run_streamlit():
+        python_exe = sys.executable
+        subprocess.run([
+            python_exe,
+            "-m",
+            "streamlit",
+            "run",
+            "streamlit_app.py",
+            "--server.port=8501",
+            "--server.address=0.0.0.0"
+        ])
 
-# Wait until Streamlit port is ready
-print("Waiting for Streamlit frontend...")
-wait_for_port("127.0.0.1", 8501, timeout_sec=120)
+    threading.Thread(target=run_streamlit, daemon=True).start()
 
-# Expose Streamlit via ngrok
-streamlit_tunnel = ngrok.connect(8501)
-print("✅ Streamlit ready at:", streamlit_tunnel.public_url)
+    # Wait for Streamlit
+    print("Waiting for Streamlit frontend...")
+    wait_for_port("127.0.0.1", 8501, timeout_sec=120)
 
-# Keep the script running
+    # Expose Streamlit via ngrok
+    streamlit_tunnel = ngrok.connect(8501)
+    print("✅ Streamlit ready at:", streamlit_tunnel.public_url)
+
+# Keep the script alive
 try:
     while True:
         time.sleep(9999)
 except KeyboardInterrupt:
     print("Shutting down...")
-    ngrok.kill()
-
+    if not os.environ.get("CLOUD_RUN_API_URL"):
+        ngrok.kill()
