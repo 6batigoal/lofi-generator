@@ -11,8 +11,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-COPY . .
+# Copy the rest of the backend code
+COPY api.py .
 
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
@@ -21,5 +21,5 @@ EXPOSE 8080
 ENV DEVICE=cpu
 ENV PORT=8080
 
-# Run the FastAPI app with Uvicorn
+# Run FastAPI app with Uvicorn
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]
