@@ -23,6 +23,6 @@ ENV DEVICE=cpu
 ENV PORT=8080
 ENV STREAMLIT_PORT=8501
 
-# Default command for Cloud Run: FastAPI only
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]
+# Final command: run FastAPI directly
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
 
