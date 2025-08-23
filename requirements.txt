@@ -1,8 +1,12 @@
-streamlit==1.48.0
 torch==2.1.0
-torchaudio==2.1.0
-audiocraft @ git+https://github.com/facebookresearch/audiocraft.git@896ec7c47f5e5d1e5aa1e4b260c4405328bf009d
-ffmpy==0.6.1
-soundfile==0.13.1
-transformers>=4.31.0
-sentencepiece>=0.1.99
+audiocraft
+pyngrok
+fastapi
+uvicorn
+scipy
+numpy<2
+transformers==4.37.2
+accelerate==0.27.2
+spacy
+streamlit
+python-dotenv
