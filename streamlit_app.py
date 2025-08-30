@@ -7,8 +7,8 @@ import os
 with open("backend_url.txt", "r") as f:
     API_URL = f.read().strip() + "/generate_music"
 
-st.set_page_config(page_title="AI Music Generator", page_icon="🎵", layout="centered")
-st.title("🎶 AI Music Generator")
+st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
+st.title("🎶 Lofi Music Generator")
 
 # Ensure generated folder exists
 os.makedirs("generated", exist_ok=True)
@@ -29,9 +29,17 @@ selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
 selected_atmosphere = st.multiselect("🌌 Atmosphere", options=atmosphere_keywords)
 
 all_keywords = selected_mood + selected_atmosphere
-fixed_keyword = "lo-fi"
+fixed_keyword = "lofi"
 
-duration_map = {"5 seconds": 5, "10 seconds": 10}
+duration_map = {
+    "5 seconds": 5,
+    "10 seconds": 10,
+    "30 seconds": 30,
+    "1 minute": 60,
+    "1.5 minute": 90,
+    "2 minutes": 120,
+    "3 minutes": 180
+}
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]
 

@@ -25,7 +25,7 @@ EXPOSE 8080
 
 # Set environment variables
 ENV PORT=8080
-ENV DEVICE=cuda  # Force GPU usage
+ENV DEVICE=cuda
 
 # Fail fast if GPU is missing
 RUN python3 -c "import torch; assert torch.cuda.is_available(), '❌ GPU not detected in container'"

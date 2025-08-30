@@ -54,17 +54,26 @@ def sanitize_prompt(prompt: str):
     return "_".join(re.findall(r'\w+', prompt.lower()))
 
 
-# --- Generate music and save to WAV ---
+# --- Generate music and save to WAV (optimized for GPU memory & best parameters) ---
 def generate_music_file(prompt: str, duration: int = 10):
-    sample_rate = 48000
-    fixed_keywords = "lo-fi"
-    adjusted_duration = int(duration * 1.5)
-    full_prompt = f"{fixed_keywords} {prompt}"
+    sample_rate = 32000  # Use your preferred sample rate
+    full_prompt = prompt
 
-    model.set_generation_params(duration=adjusted_duration)
-    print(f"🎵 Generating music for: '{full_prompt}' ({adjusted_duration}s)")
+    # Set generation parameters using your optimal local values
+    model.set_generation_params(
+        duration=int(duration * 1.5),
+        top_k=250,
+        top_p=0.95,
+        temperature=1.0,
+        cfg_coef=3.0,
+        two_step_cfg=False
+    )
 
-    audio = model.generate([full_prompt], progress=True)
+    print(f"🎵 Generating music for: '{full_prompt}' ({duration}s)")
+
+    with torch.no_grad():
+        audio = model.generate([full_prompt], progress=True)
+
     decoded_audio = audio.cpu().numpy().squeeze()
     decoded_audio = decoded_audio / np.max(np.abs(decoded_audio))
 
@@ -81,8 +90,12 @@ def generate_music_file(prompt: str, duration: int = 10):
     file_path = output_dir / file_name
 
     wav_write(str(file_path), sample_rate, int_audio)
-    return str(file_path)
 
+    # Cleanup to free GPU memory
+    del audio, decoded_audio, int_audio, dither
+    torch.cuda.empty_cache()
+
+    return str(file_path)
 
 # --- API endpoint ---
 @app.get("/generate_music")
@@ -94,4 +107,3 @@ def generate_music_endpoint(
     audio_file = generate_music_file(prompt, duration)
     background_tasks.add_task(os.remove, audio_file)
     return FileResponse(audio_file, media_type="audio/wav", filename=os.path.basename(audio_file))
-
