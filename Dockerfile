@@ -4,7 +4,7 @@ FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 # Set working directory
 WORKDIR /app
 
-# Prevent interactive prompts during apt installs
+# Avoid interactive prompts during apt installs
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
@@ -20,19 +20,21 @@ RUN apt-get update && apt-get install -y \
     && apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip for Python 3.11
-RUN python3.11 -m pip install --upgrade pip
+# Create a virtual environment
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install PyTorch + CUDA for Python 3.11
-RUN python3.11 -m pip install --no-cache-dir \
-    torch==2.1.0+cu121 torchvision torchaudio \
+# Upgrade pip inside venv
+RUN pip install --upgrade pip
+
+# Install PyTorch + CUDA
+RUN pip install --no-cache-dir torch==2.1.0+cu121 torchvision torchaudio \
     --extra-index-url https://download.pytorch.org/whl/cu121
 
-# Copy requirements and install all Python dependencies safely
+# Copy requirements.txt and install all Python dependencies inside venv
 COPY requirements.txt .
-
-RUN python3.11 -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
-    && python3.11 -m pip install --no-cache-dir uvicorn google-cloud-storage
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir uvicorn google-cloud-storage
 
 # Copy application code
 COPY . .
@@ -44,6 +46,6 @@ EXPOSE 8080
 ENV PORT=8080
 ENV DEVICE=cuda
 
-# Start FastAPI with Uvicorn using Python 3.11
-CMD ["python3.11", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
+# Start FastAPI with Uvicorn inside the venv
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
 
