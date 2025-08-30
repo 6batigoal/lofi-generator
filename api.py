@@ -21,8 +21,6 @@ BUCKET_NAME = "lewagon-lofi-generator"
 CHECKPOINT_BLOB = "lm_final.pt"
 LOCAL_CHECKPOINT = "/tmp/lm_final.pt"
 
-fixed_keywords = "lofi"
-
 # --- Lazy model initialization ---
 model = None
 
@@ -41,9 +39,10 @@ def download_checkpoint():
 def get_model():
     global model
     if model is None:
+        print("⬇️ Ensuring checkpoint is available...")
+        download_checkpoint()
         print("Loading MusicGen base model (medium)...")
         model = MusicGen.get_pretrained("medium", device=DEVICE)
-        download_checkpoint()
         print("Loading custom checkpoint weights...")
         state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
         model.lm.load_state_dict(state_dict)
@@ -74,7 +73,7 @@ def generate_music_file(prompt: str, duration: int = 10):
     int_audio = (decoded_audio * 32767).astype(np.int16)
 
     timestamp = time.strftime("%Y%m%dT%H%M%S")
-    keywords = f"{fixed_keywords}_{sanitize_prompt(prompt)}"
+    keywords = f"{sanitize_prompt(prompt)}"
     output_dir = Path("/tmp/generated")
     output_dir.mkdir(exist_ok=True)
     file_name = f"{timestamp}_{keywords}.wav"
@@ -93,3 +92,10 @@ def generate_music_endpoint(
     audio_file = generate_music_file(prompt, duration)
     background_tasks.add_task(os.remove, audio_file)
     return FileResponse(audio_file, media_type="audio/wav", filename=os.path.basename(audio_file))
+
+# --- Warm-up endpoint ---
+@app.get("/warmup")
+def warmup():
+    """Load the model into memory without generating audio."""
+    get_model()
+    return {"status": "Model loaded and ready!"}
