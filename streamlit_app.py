@@ -35,10 +35,7 @@ duration_map = {
     "5 seconds": 5,
     "10 seconds": 10,
     "30 seconds": 30,
-    "1 minute": 60,
-    "1.5 minute": 90,
-    "2 minutes": 120,
-    "3 minutes": 180
+    "1 minute": 60
 }
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]

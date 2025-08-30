@@ -39,10 +39,9 @@ def download_checkpoint():
 def get_model():
     global model
     if model is None:
-        print("⬇️ Ensuring checkpoint is available...")
-        download_checkpoint()
         print("Loading MusicGen base model (medium)...")
         model = MusicGen.get_pretrained("medium", device=DEVICE)
+        download_checkpoint()
         print("Loading custom checkpoint weights...")
         state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
         model.lm.load_state_dict(state_dict)
@@ -92,10 +91,3 @@ def generate_music_endpoint(
     audio_file = generate_music_file(prompt, duration)
     background_tasks.add_task(os.remove, audio_file)
     return FileResponse(audio_file, media_type="audio/wav", filename=os.path.basename(audio_file))
-
-# --- Warm-up endpoint ---
-@app.get("/warmup")
-def warmup():
-    """Load the model into memory without generating audio."""
-    get_model()
-    return {"status": "Model loaded and ready!"}
