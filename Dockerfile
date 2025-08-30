@@ -1,25 +1,37 @@
-# Use PyTorch image with Python 3.11 and CUDA 12.1
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime-py3.11
+# Start from NVIDIA CUDA runtime
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 # Set working directory
 WORKDIR /app
 
-# Avoid interactive prompts during package installation
+# Prevent interactive prompts during apt installs
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install system dependencies
+# Install system dependencies and Python 3.11
 RUN apt-get update && apt-get install -y \
-    git ffmpeg \
+    software-properties-common \
+    wget \
+    git \
+    ffmpeg \
+    build-essential \
+    ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (for caching)
-COPY requirements.txt .
+# Upgrade pip for Python 3.11
+RUN python3.11 -m pip install --upgrade pip
 
-# Upgrade pip and install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir uvicorn google-cloud-storage
+# Install PyTorch + CUDA for Python 3.11
+RUN python3.11 -m pip install --no-cache-dir \
+    torch==2.1.0+cu121 torchvision torchaudio \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Copy requirements.txt and install Python dependencies
+COPY requirements.txt .
+RUN python3.11 -m pip install --no-cache-dir -r requirements.txt \
+    && python3.11 -m pip install --no-cache-dir uvicorn google-cloud-storage
 
 # Copy application code
 COPY . .
@@ -27,9 +39,9 @@ COPY . .
 # Expose Cloud Run port
 EXPOSE 8080
 
-# Set environment variables
+# Set environment variables for FastAPI
 ENV PORT=8080
 ENV DEVICE=cuda
 
-# Start FastAPI with Uvicorn
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
+# Start FastAPI with Uvicorn using Python 3.11
+CMD ["python3.11", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
