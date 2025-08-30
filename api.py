@@ -56,17 +56,18 @@ def sanitize_prompt(prompt: str):
 
 # --- Generate music and save to WAV (optimized for GPU memory & best parameters) ---
 def generate_music_file(prompt: str, duration: int = 10):
-    sample_rate = 32000  # Use your preferred sample rate
+    sample_rate = 32000
     full_prompt = prompt
 
-    # Set generation parameters using your optimal local values
+    # Adjusted generation params
+    duration = int(duration * 1.2)
     model.set_generation_params(
-        duration=int(duration * 1.5),
-        top_k=250,
-        top_p=0.95,
+        duration=duration,
+        top_k=200,
+        top_p=0.97,
         temperature=1.0,
-        cfg_coef=3.0,
-        two_step_cfg=False
+        cfg_coef=2.5,
+        two_step_cfg=True
     )
 
     print(f"🎵 Generating music for: '{full_prompt}' ({duration}s)")
@@ -75,7 +76,10 @@ def generate_music_file(prompt: str, duration: int = 10):
         audio = model.generate([full_prompt], progress=True)
 
     decoded_audio = audio.cpu().numpy().squeeze()
-    decoded_audio = decoded_audio / np.max(np.abs(decoded_audio))
+
+    # Normalize with soft clipping
+    decoded_audio = decoded_audio / max(np.max(np.abs(decoded_audio)), 1e-5)
+    decoded_audio = np.tanh(decoded_audio)
 
     # Dithering for 16-bit WAV
     dither = np.random.uniform(-1.0 / 32767, 1.0 / 32767, decoded_audio.shape)
@@ -91,8 +95,8 @@ def generate_music_file(prompt: str, duration: int = 10):
 
     wav_write(str(file_path), sample_rate, int_audio)
 
-    # Cleanup to free GPU memory
     del audio, decoded_audio, int_audio, dither
+    torch.cuda.synchronize()
     torch.cuda.empty_cache()
 
     return str(file_path)
