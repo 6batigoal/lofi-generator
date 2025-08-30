@@ -1,5 +1,5 @@
-# Use NVIDIA PyTorch image with CUDA support
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+# Use PyTorch image with Python 3.11 and CUDA 12.1
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime-py3.11
 
 # Set working directory
 WORKDIR /app
@@ -10,13 +10,13 @@ ENV TZ=Etc/UTC
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3 python3-pip git ffmpeg \
+    git ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for caching)
 COPY requirements.txt .
 
-# Install Python dependencies
+# Upgrade pip and install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir uvicorn google-cloud-storage
