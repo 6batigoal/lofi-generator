@@ -23,8 +23,6 @@ BUCKET_NAME = "lewagon-lofi-generator"
 CHECKPOINT_BLOB = "lm_final.pt"
 LOCAL_CHECKPOINT = "/tmp/lm_final.pt"  # Cloud Run allows writing to /tmp
 
-# --- Global model variable ---
-model = None
 
 def download_checkpoint():
     """Download model checkpoint from GCS if not already cached in /tmp"""
@@ -38,49 +36,37 @@ def download_checkpoint():
     else:
         print("✔️ Checkpoint already present in /tmp, skipping download.")
 
-def load_model():
-    """Lazy-load MusicGen model and checkpoint"""
-    global model
-    if model is None:
-        print("⬇️ Loading MusicGen model...")
-        model = MusicGen.get_pretrained("medium", device=DEVICE)
-        download_checkpoint()
-        state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
-        model.lm.load_state_dict(state_dict)
-        print("✅ Model loaded successfully!")
+
+# --- Load base model ---
+print("Loading MusicGen base model (medium)...")
+model = MusicGen.get_pretrained("medium", device=DEVICE)
+
+# --- Download + load improved checkpoint ---
+download_checkpoint()
+print("Loading custom checkpoint weights...")
+state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
+model.lm.load_state_dict(state_dict)
+print("✅ Custom medium model loaded successfully!")
+
 
 # --- Utility to sanitize prompt for filenames ---
 def sanitize_prompt(prompt: str):
     return "_".join(re.findall(r'\w+', prompt.lower()))
 
+
 # --- Generate music and save to WAV ---
 def generate_music_file(prompt: str, duration: int = 10):
-    load_model()  # ensure model is loaded
+    sample_rate = 48000
+    fixed_keywords = "lo-fi"
+    adjusted_duration = int(duration * 1.5)
+    full_prompt = f"{fixed_keywords} {prompt}"
 
-    sample_rate = 32000
-    full_prompt = prompt
+    model.set_generation_params(duration=adjusted_duration)
+    print(f"🎵 Generating music for: '{full_prompt}' ({adjusted_duration}s)")
 
-    # Adjusted generation params
-    duration = int(duration * 1.2)
-    model.set_generation_params(
-        duration=duration,
-        top_k=200,
-        top_p=0.97,
-        temperature=1.0,
-        cfg_coef=2.5,
-        two_step_cfg=True
-    )
-
-    print(f"🎵 Generating music for: '{full_prompt}' ({duration}s)")
-
-    with torch.no_grad():
-        audio = model.generate([full_prompt], progress=True)
-
+    audio = model.generate([full_prompt], progress=True)
     decoded_audio = audio.cpu().numpy().squeeze()
-
-    # Normalize with soft clipping
-    decoded_audio = decoded_audio / max(np.max(np.abs(decoded_audio)), 1e-5)
-    decoded_audio = np.tanh(decoded_audio)
+    decoded_audio = decoded_audio / np.max(np.abs(decoded_audio))
 
     # Dithering for 16-bit WAV
     dither = np.random.uniform(-1.0 / 32767, 1.0 / 32767, decoded_audio.shape)
@@ -95,12 +81,8 @@ def generate_music_file(prompt: str, duration: int = 10):
     file_path = output_dir / file_name
 
     wav_write(str(file_path), sample_rate, int_audio)
-
-    del audio, decoded_audio, int_audio, dither
-    torch.cuda.synchronize()
-    torch.cuda.empty_cache()
-
     return str(file_path)
+
 
 # --- API endpoint ---
 @app.get("/generate_music")
