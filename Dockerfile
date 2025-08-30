@@ -4,12 +4,16 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 # Set working directory
 WORKDIR /app
 
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git ffmpeg \
+    python3 python3-pip git ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for caching
+# Copy requirements first (for caching)
 COPY requirements.txt .
 
 # Install Python dependencies
@@ -20,7 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy application code
 COPY . .
 
-# Expose port for Cloud Run
+# Expose Cloud Run port
 EXPOSE 8080
 
 # Set environment variables
