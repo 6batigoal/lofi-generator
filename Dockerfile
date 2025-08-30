@@ -28,9 +28,10 @@ RUN python3.11 -m pip install --no-cache-dir \
     torch==2.1.0+cu121 torchvision torchaudio \
     --extra-index-url https://download.pytorch.org/whl/cu121
 
-# Copy requirements.txt and install Python dependencies
+# Copy requirements and install all Python dependencies safely
 COPY requirements.txt .
-RUN python3.11 -m pip install --no-cache-dir -r requirements.txt \
+
+RUN python3.11 -m pip install --no-cache-dir --break-system-packages -r requirements.txt \
     && python3.11 -m pip install --no-cache-dir uvicorn google-cloud-storage
 
 # Copy application code
@@ -45,3 +46,4 @@ ENV DEVICE=cuda
 
 # Start FastAPI with Uvicorn using Python 3.11
 CMD ["python3.11", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
+
