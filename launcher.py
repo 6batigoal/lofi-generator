@@ -1,63 +1,31 @@
-import threading
 import subprocess
-import time
-import socket
 import sys
-import os
+import time
 from pyngrok import ngrok
 
-def wait_for_port(host: str, port: int, timeout_sec: int = 60):
-    start_time = time.time()
-    while True:
-        try:
-            with socket.create_connection((host, port), timeout=1):
-                return
-        except OSError:
-            if time.time() - start_time > timeout_sec:
-                raise TimeoutError(f"Port {port} not ready after {timeout_sec}s")
-            time.sleep(0.5)
+STREAMLIT_PORT = 8501
 
-# Start local FastAPI backend
-def run_api():
-    import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000)
+# Start Streamlit locally
+print("Starting Streamlit front-end...")
+streamlit_proc = subprocess.Popen([
+    sys.executable, "-m", "streamlit", "run", "streamlit_app.py",
+    "--server.port", str(STREAMLIT_PORT),
+    "--server.address", "0.0.0.0"
+])
 
-threading.Thread(target=run_api, daemon=True).start()
+# Give Streamlit a few seconds to start
+time.sleep(5)
 
-# Wait for API
-print("Waiting for backend API...")
-wait_for_port("127.0.0.1", 8000)
+# Open ngrok tunnel for Streamlit
+public_url = ngrok.connect(STREAMLIT_PORT)
+print(f"✅ Streamlit public URL: {public_url}")
+print("Press CTRL+C to stop")
 
-# Expose backend via ngrok for Streamlit
-api_tunnel = ngrok.connect(8000)
-with open("backend_url.txt", "w") as f:
-    f.write(api_tunnel.public_url)
-print("✅ Backend API ready at:", api_tunnel.public_url + "/generate_music")
-
-# Start Streamlit
-def run_streamlit():
-    python_exe = sys.executable
-    subprocess.run([
-        python_exe,
-        "-m",
-        "streamlit",
-        "run",
-        "streamlit_app.py",
-        "--server.port=8501",
-        "--server.address=0.0.0.0"
-    ])
-
-threading.Thread(target=run_streamlit, daemon=True).start()
-
-print("Waiting for Streamlit frontend...")
-wait_for_port("127.0.0.1", 8501)
-streamlit_tunnel = ngrok.connect(8501)
-print("✅ Streamlit ready at:", streamlit_tunnel.public_url)
-
-# Keep running
+# Keep the script running until user interrupts
 try:
-    while True:
-        time.sleep(9999)
+    streamlit_proc.wait()
 except KeyboardInterrupt:
-    print("Shutting down...")
+    print("Stopping Streamlit and ngrok...")
+    streamlit_proc.terminate()
     ngrok.kill()
+
