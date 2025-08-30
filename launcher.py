@@ -28,4 +28,3 @@ except KeyboardInterrupt:
     print("Stopping Streamlit and ngrok...")
     streamlit_proc.terminate()
     ngrok.kill()
-

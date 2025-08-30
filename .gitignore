@@ -147,6 +147,10 @@ ENV/
 env.bak/
 venv.bak/
 
+#otherstuff
+generated/
+backend_url.txt
+
 # Spyder project settings
 .spyderproject
 .spyproject
