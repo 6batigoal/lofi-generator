@@ -56,10 +56,9 @@ def sanitize_prompt(prompt: str):
 
 # --- Generate music and save to WAV ---
 def generate_music_file(prompt: str, duration: int = 10):
-    sample_rate = 48000
-    fixed_keywords = "lo-fi"
+    sample_rate = 32000
     adjusted_duration = int(duration * 1.5)
-    full_prompt = f"{fixed_keywords} {prompt}"
+    full_prompt = prompt
 
     model.set_generation_params(duration=adjusted_duration)
     print(f"🎵 Generating music for: '{full_prompt}' ({adjusted_duration}s)")
