@@ -27,8 +27,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV DEVICE=cuda
 
-# Fail fast if GPU is missing
-RUN python3 -c "import torch; assert torch.cuda.is_available(), '❌ GPU not detected in container'"
-
 # Start FastAPI with Uvicorn
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
