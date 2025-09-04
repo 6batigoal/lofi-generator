@@ -13,6 +13,7 @@ from google.cloud import storage
 app = FastAPI()
 
 # --- Device setup ---
+# Force CPU on Cloud Run; CUDA is not available there
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 Using device: {DEVICE}")
 
@@ -21,7 +22,7 @@ BUCKET_NAME = "lewagon-lofi-generator"
 CHECKPOINT_BLOB = "lm_final.pt"
 LOCAL_CHECKPOINT = "/tmp/lm_final.pt"
 
-# --- Lazy model initialization ---
+# --- Global model variable ---
 model = None
 
 def download_checkpoint():
@@ -37,6 +38,7 @@ def download_checkpoint():
         print("✔️ Checkpoint already present in /tmp, skipping download.")
 
 def get_model():
+    """Load the MusicGen model if not already loaded"""
     global model
     if model is None:
         print("Loading MusicGen base model (medium)...")
@@ -47,6 +49,12 @@ def get_model():
         model.lm.load_state_dict(state_dict)
         print("✅ Model loaded successfully!")
     return model
+
+# --- Preload model on container startup ---
+@app.on_event("startup")
+async def startup_event():
+    print("🟢 Preloading MusicGen model on startup...")
+    get_model()
 
 # --- Utility to sanitize prompt for filenames ---
 def sanitize_prompt(prompt: str):
