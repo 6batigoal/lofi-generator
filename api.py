@@ -9,11 +9,11 @@ import time
 import re
 from pathlib import Path
 from google.cloud import storage
+import threading
 
 app = FastAPI()
 
 # --- Device setup ---
-# Force CPU on Cloud Run; CUDA is not available there
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"🚀 Using device: {DEVICE}")
 
@@ -24,6 +24,7 @@ LOCAL_CHECKPOINT = "/tmp/lm_final.pt"
 
 # --- Global model variable ---
 model = None
+model_lock = threading.Lock()  # To prevent race conditions
 
 def download_checkpoint():
     """Download model checkpoint from GCS if not already cached in /tmp"""
@@ -37,24 +38,32 @@ def download_checkpoint():
     else:
         print("✔️ Checkpoint already present in /tmp, skipping download.")
 
+def load_model():
+    """Load MusicGen model into memory (GPU-compatible)"""
+    global model
+    with model_lock:
+        if model is None:
+            print("Loading MusicGen base model (medium)...")
+            model = MusicGen.get_pretrained("medium", device=DEVICE)
+            download_checkpoint()
+            print("Loading custom checkpoint weights...")
+            state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
+            model.lm.load_state_dict(state_dict)
+            print("✅ Model loaded successfully!")
+
 def get_model():
-    """Load the MusicGen model if not already loaded"""
+    """Return the loaded model, load synchronously if needed"""
     global model
     if model is None:
-        print("Loading MusicGen base model (medium)...")
-        model = MusicGen.get_pretrained("medium", device=DEVICE)
-        download_checkpoint()
-        print("Loading custom checkpoint weights...")
-        state_dict = torch.load(LOCAL_CHECKPOINT, map_location=DEVICE)
-        model.lm.load_state_dict(state_dict)
-        print("✅ Model loaded successfully!")
+        print("Model not loaded yet, loading now...")
+        load_model()
     return model
 
-# --- Preload model on container startup ---
+# --- Preload model asynchronously on container startup ---
 @app.on_event("startup")
 async def startup_event():
-    print("🟢 Preloading MusicGen model on startup...")
-    get_model()
+    print("Container starting… loading model in background thread")
+    threading.Thread(target=load_model, daemon=True).start()
 
 # --- Utility to sanitize prompt for filenames ---
 def sanitize_prompt(prompt: str):
@@ -66,7 +75,7 @@ def generate_music_file(prompt: str, duration: int = 10):
     adjusted_duration = int(duration * 1.0)
     full_prompt = prompt
 
-    model = get_model()
+    model = get_model()  # Waits if model not yet loaded
     model.set_generation_params(duration=adjusted_duration)
     print(f"🎵 Generating music for: '{full_prompt}' ({adjusted_duration}s)")
 
