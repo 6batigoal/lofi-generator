@@ -45,9 +45,9 @@ preset_prompts = [
     "Chillhop, focus, library",
     "Jazz, study, cafe",
     "Ambient, calm, forest",
-    "Lo-Fi Funk, relaxed, cozy room",
+    "Funk, relaxed, cozy room",
     "Synthwave, reflective, neon lights",
-    "Piano Lo-Fi, dreamy, night",
+    "Piano, dreamy, night",
     "Trip-Hop, moody, subway",
     "Downtempo, chill, mountains",
     "Hip-Hop, energetic, city",
@@ -69,11 +69,11 @@ duration_choice = st.selectbox("Select music duration:", list(duration_map.keys(
 duration = duration_map[duration_choice]
 
 # --- Preset or manual selection ---
-use_preset = st.checkbox("🎛 Use a preset prompt instead of manual selection")
+use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 
 if use_preset:
     selected_preset = st.selectbox("Pick a preset:", options=preset_prompts)
-    prompt = selected_preset
+    prompt = f"{fixed_keyword}, {selected_preset}"
 else:
     selected_subgenre = st.selectbox("🎵 Primary Lo-Fi Subgenre", options=primary_subgenres)
     selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
