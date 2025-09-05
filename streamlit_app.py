@@ -1,4 +1,5 @@
 import streamlit as st
+import random
 import requests
 from datetime import datetime
 import os
@@ -69,24 +70,41 @@ duration = duration_map[duration_choice]
 # --- Preset or manual selection ---
 use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 
+# --- Fixed parameters ---
 fixed_keyword = "lofi"
-fixed_tempo = "80 BPM"
 
+# random tempo
+def get_random_tempo():
+    # Common lofi tempos
+    possible_bpms = [70, 72, 75, 78, 80]
+    return f"{random.choice(possible_bpms)} BPM"
+
+# --- Prompt selection ---
 if use_preset:
     selected_preset = st.selectbox("Pick a preset:", options=preset_prompts)
+    fixed_tempo = get_random_tempo()
     prompt = f"{fixed_keyword}, {fixed_tempo}, {selected_preset}"
 else:
     selected_subgenre = st.selectbox("🎵 Primary Lo-Fi Subgenre", options=primary_subgenres)
     selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
     selected_atmosphere = st.multiselect("🌌 Atmosphere", options=atmosphere_keywords)
     all_keywords = selected_mood + selected_atmosphere
+    fixed_tempo = get_random_tempo()
     prompt_parts = [fixed_keyword, fixed_tempo, selected_subgenre] + all_keywords
     prompt = ", ".join(prompt_parts)
 
 # --- Generate filename ---
-def generate_filename(prompt):
+def generate_filename(prompt, exclude_tempo=True):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_prompt = prompt.replace(", ", "_")
+    
+    safe_prompt = prompt
+    if exclude_tempo:
+        # Remove the fixed tempo from the filename
+        safe_prompt = safe_prompt.replace(f"{fixed_tempo}, ", "")
+        safe_prompt = safe_prompt.replace(f", {fixed_tempo}", "")
+    
+    # Replace commas and spaces with underscores
+    safe_prompt = safe_prompt.replace(", ", "_").replace(" ", "_")
     return f"generated/{timestamp}_{safe_prompt}.wav"
 
 # --- Generate music button ---
@@ -107,7 +125,7 @@ if st.button(button_label):
                 response = None
 
         if response and response.status_code == 200:
-            output_file = generate_filename(prompt)
+            output_file = generate_filename(prompt, exclude_tempo=True)
             with open(output_file, "wb") as f:
                 f.write(response.content)
             st.success("✅ Music generated!")
