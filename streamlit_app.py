@@ -15,8 +15,8 @@ os.makedirs("generated", exist_ok=True)
 primary_subgenres = [
     "Chillhop", "Hip-Hop", "Jazz", "House", "Vaporwave",
     "Ambient", "Synthwave", "Indie Rock", "Japan",
-    "Lo-Fi Funk", "Neo-Soul", "Trip-Hop", "Downtempo",
-    "Lounge", "Classical", "Piano Lo-Fi", "Bossa Nova",
+    "Funk", "Neo-Soul", "Trip-Hop", "Downtempo",
+    "Lounge", "Classical", "Piano", "Bossa Nova",
     "Jazz Fusion", "Electronic", "IDM", "Retro Synth", "Dream Pop"
 ]
 
@@ -41,14 +41,14 @@ atmosphere_keywords = [
 # --- Preset prompts ---
 preset_prompts = [
     "Chillhop, focus, library",
-    "Jazz, study, cafe",
+    "Jazz, lounge, night",
     "Ambient, calm, forest",
     "Funk, relaxed, cozy room",
     "Synthwave, reflective, neon lights",
     "Piano, dreamy, night",
     "Trip-Hop, moody, subway",
     "Downtempo, chill, mountains",
-    "Hip-Hop, energetic, city",
+    "Hip-Hop, energetic, New York City",
     "House, upbeat, street",
     "Neo-Soul, lively, cafe",
     "Bossa Nova, romantic, beach",
@@ -70,16 +70,17 @@ duration = duration_map[duration_choice]
 use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 
 fixed_keyword = "lofi"
+fixed_tempo = "80 BPM"
 
 if use_preset:
     selected_preset = st.selectbox("Pick a preset:", options=preset_prompts)
-    prompt = f"{fixed_keyword}, {selected_preset}"
+    prompt = f"{fixed_keyword}, {fixed_tempo}, {selected_preset}"
 else:
     selected_subgenre = st.selectbox("🎵 Primary Lo-Fi Subgenre", options=primary_subgenres)
     selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
     selected_atmosphere = st.multiselect("🌌 Atmosphere", options=atmosphere_keywords)
     all_keywords = selected_mood + selected_atmosphere
-    prompt_parts = [fixed_keyword, selected_subgenre] + all_keywords
+    prompt_parts = [fixed_keyword, fixed_tempo, selected_subgenre] + all_keywords
     prompt = ", ".join(prompt_parts)
 
 # --- Generate filename ---
