@@ -1,5 +1,4 @@
 import streamlit as st
-import random
 import requests
 from datetime import datetime
 import os
@@ -73,24 +72,16 @@ use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 # --- Fixed parameters ---
 fixed_keyword = "lofi"
 
-# random tempo
-def get_random_tempo():
-    # Common lofi tempos
-    possible_bpms = [70, 72, 75, 78, 80]
-    return f"{random.choice(possible_bpms)} BPM"
-
 # --- Prompt selection ---
 if use_preset:
     selected_preset = st.selectbox("Pick a preset:", options=preset_prompts)
-    fixed_tempo = get_random_tempo()
-    prompt = f"{fixed_keyword}, {fixed_tempo}, {selected_preset}"
+    prompt = f"{fixed_keyword}, {selected_preset}"
 else:
     selected_subgenre = st.selectbox("🎵 Primary Lo-Fi Subgenre", options=primary_subgenres)
     selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
     selected_atmosphere = st.multiselect("🌌 Atmosphere", options=atmosphere_keywords)
     all_keywords = selected_mood + selected_atmosphere
-    fixed_tempo = get_random_tempo()
-    prompt_parts = [fixed_keyword, fixed_tempo, selected_subgenre] + all_keywords
+    prompt_parts = [fixed_keyword, selected_subgenre] + all_keywords
     prompt = ", ".join(prompt_parts)
 
 # --- Generate filename ---
@@ -98,11 +89,6 @@ def generate_filename(prompt, exclude_tempo=True):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     safe_prompt = prompt
-    if exclude_tempo:
-        # Remove the fixed tempo from the filename
-        safe_prompt = safe_prompt.replace(f"{fixed_tempo}, ", "")
-        safe_prompt = safe_prompt.replace(f", {fixed_tempo}", "")
-    
     # Replace commas and spaces with underscores
     safe_prompt = safe_prompt.replace(", ", "_").replace(" ", "_")
     return f"generated/{timestamp}_{safe_prompt}.wav"
