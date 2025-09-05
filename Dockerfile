@@ -8,13 +8,14 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    git \
-    wget \
-    build-essential \
-    ca-certificates \
+# Install system dependencies with retries and HTTPS
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list \
+    && apt-get update -o Acquire::Retries=3 \
+    && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        git \
+        wget \
+        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
