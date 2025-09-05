@@ -3,10 +3,6 @@ import requests
 from datetime import datetime
 import os
 
-# Read backend URL
-with open("backend_url.txt", "r") as f:
-    API_URL = f.read().strip() + "/generate_music"
-
 API_URL = st.secrets["backend"]["url"] + "/generate_music"
 
 st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
