@@ -8,16 +8,21 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install system dependencies and Python 3.11
-RUN apt-get update && apt-get install -y \
+# Install system dependencies, Python 3.11, and HTTPS transport for apt
+RUN apt-get update && apt-get install -y --fix-missing --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
     software-properties-common \
     wget \
     git \
     ffmpeg \
     build-essential \
-    ca-certificates \
     && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3-pip \
+    && apt-get update && apt-get install -y --fix-missing \
+    python3.11 \
+    python3.11-venv \
+    python3.11-distutils \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a virtual environment
@@ -48,4 +53,3 @@ ENV DEVICE=cuda
 
 # Start FastAPI with Uvicorn inside the venv
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
-
