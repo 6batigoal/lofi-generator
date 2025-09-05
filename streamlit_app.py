@@ -71,6 +71,8 @@ duration = duration_map[duration_choice]
 # --- Preset or manual selection ---
 use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 
+fixed_keyword = "lofi"
+
 if use_preset:
     selected_preset = st.selectbox("Pick a preset:", options=preset_prompts)
     prompt = f"{fixed_keyword}, {selected_preset}"
@@ -79,7 +81,6 @@ else:
     selected_mood = st.multiselect("🎯 Mood", options=mood_keywords)
     selected_atmosphere = st.multiselect("🌌 Atmosphere", options=atmosphere_keywords)
     all_keywords = selected_mood + selected_atmosphere
-    fixed_keyword = "lofi"
     prompt_parts = [fixed_keyword, selected_subgenre] + all_keywords
     prompt = ", ".join(prompt_parts)
 
