@@ -7,6 +7,8 @@ import os
 with open("backend_url.txt", "r") as f:
     API_URL = f.read().strip() + "/generate_music"
 
+API_URL = st.secrets["backend"]["url"] + "/generate_music"
+
 st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
 st.title("🎶 Lofi Music Generator")
 
