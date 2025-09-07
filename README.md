@@ -2,9 +2,10 @@
 
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/streamlit-1.48.1-orange)](https://streamlit.io/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPLv3-red)](LICENSE)
 
-Final project for **Le Wagon Bootcamp**. Batch 1979, Data Science PT. 
+Final project for [**Le Wagon Bootcamp**](https://www.lewagon.com/data-science-course).
+Batch 1979, AI & Data Science PT.
 
 Lofi Generator is an **AI-powered music generator** that lets you create lofi tracks effortlessly. Using a fine-tuned **MusicGen model**, the app generates music quickly, safely, and in a copyright-friendly way.  
 
