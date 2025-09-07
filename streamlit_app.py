@@ -30,7 +30,7 @@ mood_keywords = [
 ]
 
 atmosphere_keywords = [
-    "cafe", "forest", "rain", "beach", "mountains", "city",
+    "cafe", "forest", "rain", "mountains", "city",
     "space", "train", "subway", "station", "library", "study room",
     "snow", "winter", "ocean", "river", "twilight", "sunrise",
     "sunset", "night", "cozy room", "vintage", "retro", "vinyl",
@@ -61,7 +61,8 @@ duration_map = {
     "5 seconds": 5,
     "10 seconds": 10,
     "30 seconds": 30,
-    "1 minute": 60
+    "1 minute": 60,
+    "2 minutes": 120
 }
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]
