@@ -2,13 +2,14 @@ import streamlit as st
 import requests
 from datetime import datetime
 import os
-from pydub import AudioSegment  # NEW
+from pydub import AudioSegment  # Required for looping & normalization
 
 API_URL = st.secrets["backend"]["url"] + "/generate_music"
 
 st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
 st.title("🎶 Lofi Music Generator")
-st.subheader("Restricting music generation to 30 seconds to avoid backend errors")
+st.subheader("Currently restricting music generation to 30 seconds.")
+st.subheader("Everything above 30 seconds will be looped.")
 
 # Ensure generated folder exists
 os.makedirs("generated", exist_ok=True)
@@ -58,12 +59,14 @@ preset_prompts = [
     "Vaporwave, chill, retro loft"
 ]
 
-# --- Duration choices ---
+# --- Duration choices (UPDATED: added 1.5 min and 3 min options) ---
 duration_map = {
     "10 seconds": 10,
     "20 seconds": 20,
     "30 seconds": 30,
-    "60 seconds (looped)": 60,  # NEW
+    "1 minute": 60,
+    "1.5 minute": 90,  # 30s * 3
+    "3 minutes": 180     # 30s * 6
 }
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]
@@ -92,16 +95,18 @@ def generate_filename(prompt, suffix=""):
     safe_prompt = prompt.replace(", ", "_").replace(" ", "_")
     return f"generated/{timestamp}_{safe_prompt}{suffix}.wav"
 
-# --- Helper to loop audio ---
-def make_looped_version(file_path, repeat=2):
+# --- Helper to loop & normalize audio (UPDATED: added normalize option) ---
+def make_looped_version(file_path, repeat=1, normalize=False):
     audio = AudioSegment.from_wav(file_path)
     looped = audio * repeat
+    if normalize:
+        looped = looped.normalize(headroom=5.0)  # Reduce very loud peaks
     looped_file = file_path.replace(".wav", f"_looped.wav")
     looped.export(looped_file, format="wav")
     return looped_file
 
-# --- Generate music button ---
-button_label = f"Generate Music (⏳ ~{int(duration*3)}s)"
+# --- Generate music button (UPDATED: handles multiple loop counts & normalization) ---
+button_label = f"Generate Music (⏳ ~{int(min(duration,30)*3)}s)"
 if st.button(button_label):
     if not prompt:
         st.error("Please select a prompt or preset.")
@@ -125,9 +130,16 @@ if st.button(button_label):
             with open(output_file, "wb") as f:
                 f.write(response.content)
 
-            # Loop if user asked for 60s
-            if duration == 60:
-                output_file = make_looped_version(output_file, repeat=2)
+            # Determine how many times to loop
+            if duration > 30:
+                repeat_count = duration // 30  # e.g., 90s -> repeat 3 times
+                output_file = make_looped_version(output_file, repeat=repeat_count, normalize=True)
+                st.info(f"🎵 Generated track length: {duration} seconds ({repeat_count} loops of 30s)")
+            else:
+                # Normalize even for single 30s clip
+                audio = AudioSegment.from_wav(output_file).normalize(headroom=5.0)
+                audio.export(output_file, format="wav")
+                st.info(f"🎵 Generated track length: {duration} seconds")
 
             st.success("✅ Music generated!")
             st.audio(output_file, format="audio/wav")
