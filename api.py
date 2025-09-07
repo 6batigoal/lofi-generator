@@ -79,13 +79,7 @@ def generate_music_file(prompt: str, duration: int = 10):
     adjusted_duration = int(duration * 1.0)
 
     model = get_model()
-    # Improved generation parameters
-    model.set_generation_params(
-        duration=adjusted_duration,
-        top_k=2048,
-        temperature=0.8,
-        conditioning_scale=1.0
-    )
+    model.set_generation_params(duration=adjusted_duration)
     print(f"🎵 Generating music for: '{prompt}' ({adjusted_duration}s)")
 
     audio = model.generate([prompt], progress=True)
