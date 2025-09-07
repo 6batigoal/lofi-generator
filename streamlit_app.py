@@ -117,7 +117,7 @@ if st.button(button_label):
         # Always request max 30s from backend
         backend_duration = min(duration, 30)
 
-        st.text(f"Generating {backend_duration}s music for: {prompt}")
+        st.text(f"Generating {duration} seconds music for: {prompt}")
         st.info(f"⏳ Estimated waiting time: ~{int(backend_duration*3)} seconds")
 
         with st.spinner("Generating music..."):
