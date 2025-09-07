@@ -11,6 +11,10 @@ from pathlib import Path
 from google.cloud import storage
 import threading
 
+# Optional post-processing
+from pydub import AudioSegment
+from pydub.effects import normalize
+
 app = FastAPI()
 
 # --- Device setup ---
@@ -24,7 +28,7 @@ LOCAL_CHECKPOINT = "/tmp/lm_final.pt"
 
 # --- Global model variable ---
 model = None
-model_lock = threading.Lock()  # To prevent race conditions
+model_lock = threading.Lock()
 
 def download_checkpoint():
     """Download model checkpoint from GCS if not already cached in /tmp"""
@@ -73,29 +77,44 @@ def sanitize_prompt(prompt: str):
 def generate_music_file(prompt: str, duration: int = 10):
     sample_rate = 32000
     adjusted_duration = int(duration * 1.0)
-    full_prompt = prompt
 
-    model = get_model()  # Waits if model not yet loaded
-    model.set_generation_params(duration=adjusted_duration)
-    print(f"🎵 Generating music for: '{full_prompt}' ({adjusted_duration}s)")
+    model = get_model()
+    # Improved generation parameters
+    model.set_generation_params(
+        duration=adjusted_duration,
+        top_k=2048,
+        temperature=0.8,
+        conditioning_scale=1.0
+    )
+    print(f"🎵 Generating music for: '{prompt}' ({adjusted_duration}s)")
 
-    audio = model.generate([full_prompt], progress=True)
+    audio = model.generate([prompt], progress=True)
     decoded_audio = audio.cpu().numpy().squeeze()
-    decoded_audio = decoded_audio / np.max(np.abs(decoded_audio))
 
-    # Dithering for 16-bit WAV
-    dither = np.random.uniform(-1.0 / 32767, 1.0 / 32767, decoded_audio.shape)
+    # Normalize with headroom
+    decoded_audio = decoded_audio / (np.max(np.abs(decoded_audio)) + 1e-9) * 0.95
+
+    # Triangular dithering for 16-bit WAV
+    dither = np.random.triangular(-1.0 / 32767, 0, 1.0 / 32767, decoded_audio.shape)
     decoded_audio = np.clip(decoded_audio + dither, -1.0, 1.0)
     int_audio = (decoded_audio * 32767).astype(np.int16)
 
     timestamp = time.strftime("%Y%m%dT%H%M%S")
-    keywords = f"{sanitize_prompt(prompt)}"
+    keywords = sanitize_prompt(prompt)
     output_dir = Path("/tmp/generated")
     output_dir.mkdir(exist_ok=True)
-    file_name = f"{timestamp}_{keywords}.wav"
-    file_path = output_dir / file_name
+    file_path = output_dir / f"{timestamp}_{keywords}.wav"
 
-    wav_write(str(file_path), sample_rate, int_audio)
+    # Optional: Post-process with pydub normalization
+    audio_segment = AudioSegment(
+        int_audio.tobytes(),
+        frame_rate=sample_rate,
+        sample_width=2,
+        channels=1
+    )
+    audio_segment = normalize(audio_segment)
+    audio_segment.export(file_path, format="wav")
+
     return str(file_path)
 
 # --- API endpoint ---
