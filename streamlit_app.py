@@ -2,11 +2,13 @@ import streamlit as st
 import requests
 from datetime import datetime
 import os
+from pydub import AudioSegment  # NEW
 
 API_URL = st.secrets["backend"]["url"] + "/generate_music"
 
 st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
 st.title("🎶 Lofi Music Generator")
+st.subheader("Restricting music generation to 30 seconds to avoid backend errors")
 
 # Ensure generated folder exists
 os.makedirs("generated", exist_ok=True)
@@ -58,11 +60,10 @@ preset_prompts = [
 
 # --- Duration choices ---
 duration_map = {
-    "5 seconds": 5,
     "10 seconds": 10,
+    "20 seconds": 20,
     "30 seconds": 30,
-    "1 minute": 60,
-    "2 minutes": 120
+    "60 seconds (looped)": 60,  # NEW
 }
 duration_choice = st.selectbox("Select music duration:", list(duration_map.keys()))
 duration = duration_map[duration_choice]
@@ -86,13 +87,18 @@ else:
     prompt = ", ".join(prompt_parts)
 
 # --- Generate filename ---
-def generate_filename(prompt, exclude_tempo=True):
+def generate_filename(prompt, suffix=""):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    safe_prompt = prompt
-    # Replace commas and spaces with underscores
-    safe_prompt = safe_prompt.replace(", ", "_").replace(" ", "_")
-    return f"generated/{timestamp}_{safe_prompt}.wav"
+    safe_prompt = prompt.replace(", ", "_").replace(" ", "_")
+    return f"generated/{timestamp}_{safe_prompt}{suffix}.wav"
+
+# --- Helper to loop audio ---
+def make_looped_version(file_path, repeat=2):
+    audio = AudioSegment.from_wav(file_path)
+    looped = audio * repeat
+    looped_file = file_path.replace(".wav", f"_looped.wav")
+    looped.export(looped_file, format="wav")
+    return looped_file
 
 # --- Generate music button ---
 button_label = f"Generate Music (⏳ ~{int(duration*3)}s)"
@@ -100,23 +106,32 @@ if st.button(button_label):
     if not prompt:
         st.error("Please select a prompt or preset.")
     else:
-        st.text(f"Generating {duration}s music for: {prompt}")
-        st.info(f"⏳ Estimated waiting time: ~{int(duration*3)} seconds")
+        # Always request max 30s from backend
+        backend_duration = min(duration, 30)
+
+        st.text(f"Generating {backend_duration}s music for: {prompt}")
+        st.info(f"⏳ Estimated waiting time: ~{int(backend_duration*3)} seconds")
 
         with st.spinner("Generating music..."):
             try:
-                params = {"prompt": prompt, "duration": duration}
+                params = {"prompt": prompt, "duration": backend_duration}
                 response = requests.get(API_URL, params=params)
             except requests.exceptions.RequestException as e:
                 st.error(f"❌ Request failed: {e}")
                 response = None
 
         if response and response.status_code == 200:
-            output_file = generate_filename(prompt, exclude_tempo=True)
+            output_file = generate_filename(prompt)
             with open(output_file, "wb") as f:
                 f.write(response.content)
+
+            # Loop if user asked for 60s
+            if duration == 60:
+                output_file = make_looped_version(output_file, repeat=2)
+
             st.success("✅ Music generated!")
             st.audio(output_file, format="audio/wav")
+
             with open(output_file, "rb") as f:
                 st.download_button("⬇️ Download your track", f, file_name=os.path.basename(output_file))
         elif response:
