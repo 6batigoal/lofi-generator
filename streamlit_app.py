@@ -137,7 +137,7 @@ if st.button(button_label):
             if duration > 30:
                 repeat_count = duration // 30  # e.g., 90s -> repeat 3 times
                 output_file = make_looped_version(output_file, repeat=repeat_count, normalize=True, crossfade_ms=500)
-                st.info(f"🎵 Generated track length: {duration} seconds ({repeat_count} loops of 30s with crossfade)")
+                st.info(f"🎵 Generated track length: ~{duration} seconds")
             else:
                 # Normalize even for single 30s clip
                 audio = AudioSegment.from_wav(output_file).normalize(headroom=5.0)
