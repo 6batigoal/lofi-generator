@@ -8,40 +8,39 @@ API_URL = st.secrets["backend"]["url"] + "/generate_music"
 
 st.set_page_config(page_title="Lofi Music Generator", page_icon="🎵", layout="centered")
 st.title("🎶 Lofi Music Generator")
-st.subheader("Currently restricting music generation to 30 seconds.")
-st.subheader("Everything above 30 seconds will be looped.")
+st.subheader("Some keywords do not work well together ...")
+st.subheader("Have fun trying to get the best mix!")
 
 # Ensure generated folder exists
 os.makedirs("generated", exist_ok=True)
 
-# --- Primary Lo-Fi subgenres ---
+# --- Primary Subgenres (refined for AI-friendly generation) ---
 primary_subgenres = [
-    "Chillhop", "Hip-Hop", "Jazz", "House", "Vaporwave",
-    "Ambient", "Synthwave", "Indie Rock", "Japan",
-    "Funk", "Neo-Soul", "Trip-Hop", "Downtempo",
-    "Lounge", "Classical", "Piano", "Bossa Nova",
-    "Jazz Fusion", "Electronic", "IDM", "Retro Synth", "Dream Pop"
+    "Chillhop", "Hip-Hop", "Hip-Hop", "Jazz", "Chill Jazz", 
+    "House", "Vaporwave", "Ambient", "Synthwave", "Dreamy Synth",
+    "Indie Rock", "Funk", "Neo-Soul", "Trip-Hop", "Downtempo",
+    "Lounge", "Classical", "Piano", "Bossa Nova", "Jazz Fusion", 
+    "Electronic", "Tropical House", "Smooth R&B", "Dream Pop"
 ]
 
-# --- Secondary tags ---
+# --- Mood Keywords (refined for AI-friendly generation) ---
 mood_keywords = [
-    "evening vibes", "morning vibes", "night vibes", "sunset",
-    "study", "workout", "relax", "focus", "chill", "cozy",
-    "sleep", "dreamy", "nostalgic", "melancholic", "uplifting",
-    "playful", "romantic", "sad", "meditative", "energetic",
-    "moody", "warm", "reflective"
+    "calm", "soothing", "dreamy", "relaxing", "chill", "cozy",
+    "nostalgic", "melancholy", "uplifted", "romantic", "playful",
+    "energetic", "meditative", "focused", "ambient", "evening vibes",
+    "morning vibes", "night vibes", "sunset", "sunrise"
 ]
 
+# --- Atmosphere Keywords (refined for AI-friendly generation) ---
 atmosphere_keywords = [
-    "cafe", "forest", "rain", "mountains", "city",
-    "space", "train", "subway", "station", "library", "study room",
-    "snow", "winter", "ocean", "river", "twilight", "sunrise",
-    "sunset", "night", "cozy room", "vintage", "retro", "vinyl",
-    "storm", "wind", "fireplace", "park", "street", "neon lights",
-    "coffee shop", "campfire", "desert", "tropical", "loft", "attic"
+    "cafe", "library", "study room", "bedroom", "forest", "rain",
+    "mountains", "ocean", "river", "city streets", "neon lights",
+    "train", "subway", "street", "coffee shop", "campfire",
+    "vintage", "retro", "vinyl crackle", "lofi bedroom", "cityscape at night",
+    "twilight", "cozy room", "desert", "tropical", "loft", "attic"
 ]
 
-# --- Preset prompts ---
+# --- Preset Prompts (optimized for high-quality AI music generation) ---
 preset_prompts = [
     "Chillhop, focus, library",
     "Jazz, lounge, night",
@@ -51,12 +50,17 @@ preset_prompts = [
     "Piano, dreamy, night",
     "Trip-Hop, moody, subway",
     "Downtempo, chill, mountains",
-    "Hip-Hop, energetic, New York City",
-    "House, upbeat, street",
+    "Hip-Hop, energetic, city streets",
+    "House, upbeat, festival vibes",
     "Neo-Soul, lively, cafe",
     "Bossa Nova, romantic, beach",
     "Synthwave, dreamy, space",
-    "Vaporwave, chill, retro loft"
+    "Vaporwave, chill, retro loft",
+    "Hip-Hop, calm, bedroom",
+    "Chill Jazz, soothing, evening",
+    "Ambient, ethereal, river",
+    "Dreamy Synth, relaxing, neon city",
+    "Hip-Hop, meditative, study room"
 ]
 
 # --- Duration choices (added longer loop options) ---
@@ -75,7 +79,7 @@ duration = duration_map[duration_choice]
 use_preset = st.checkbox("🪄 Use a preset prompt instead of manual selection")
 
 # --- Fixed parameters ---
-fixed_keyword = "lofi"
+fixed_keyword = "lo-fi"
 
 # --- Prompt selection ---
 if use_preset:
