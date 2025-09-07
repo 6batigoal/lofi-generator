@@ -1,27 +1,37 @@
-# Use NVIDIA PyTorch image with Python 3.11 and CUDA 12.1 preinstalled
-FROM nvcr.io/nvidia/pytorch:23.08-py3
+# Start from NVIDIA CUDA runtime
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 # Set working directory
 WORKDIR /app
 
-# Avoid interactive prompts
+# Avoid interactive prompts during apt installs
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install system dependencies with retries and HTTPS
-RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|https://archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list \
-    && apt-get update -o Acquire::Retries=3 \
-    && apt-get install -y --no-install-recommends \
-        ffmpeg \
-        git \
-        wget \
-        ca-certificates \
+# Install system dependencies and Python 3.11
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    git \
+    ffmpeg \
+    build-essential \
+    ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
+# Create a virtual environment
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Upgrade pip inside venv
 RUN pip install --upgrade pip
 
-# Copy requirements.txt and install Python dependencies
+# Install PyTorch + CUDA
+RUN pip install --no-cache-dir torch==2.1.0+cu121 torchvision torchaudio \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Copy requirements.txt and install all Python dependencies inside venv
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir uvicorn google-cloud-storage
@@ -32,9 +42,9 @@ COPY . .
 # Expose Cloud Run port
 EXPOSE 8080
 
-# Environment variables
+# Set environment variables for FastAPI
 ENV PORT=8080
 ENV DEVICE=cuda
 
-# Start FastAPI
+# Start FastAPI with Uvicorn inside the venv
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port=8080"]
