@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 from datetime import datetime
 import os
-from pydub import AudioSegment  # Required for looping & normalization
+from pydub import AudioSegment  # Required for looping, normalization, and crossfades
 
 API_URL = st.secrets["backend"]["url"] + "/generate_music"
 
@@ -59,7 +59,7 @@ preset_prompts = [
     "Vaporwave, chill, retro loft"
 ]
 
-# --- Duration choices (UPDATED: added 1.5 min and 3 min options) ---
+# --- Duration choices (added longer loop options) ---
 duration_map = {
     "10 seconds": 10,
     "20 seconds": 20,
@@ -95,17 +95,20 @@ def generate_filename(prompt, suffix=""):
     safe_prompt = prompt.replace(", ", "_").replace(" ", "_")
     return f"generated/{timestamp}_{safe_prompt}{suffix}.wav"
 
-# --- Helper to loop & normalize audio (UPDATED: added normalize option) ---
-def make_looped_version(file_path, repeat=1, normalize=False):
+# --- Helper to loop & normalize audio (UPDATED: added crossfade for smoother loops) ---
+def make_looped_version(file_path, repeat=1, normalize=False, crossfade_ms=500):
     audio = AudioSegment.from_wav(file_path)
-    looped = audio * repeat
+    final_audio = audio
+    for _ in range(repeat - 1):
+        # Append with crossfade to smooth transition
+        final_audio = final_audio.append(audio, crossfade=crossfade_ms)
     if normalize:
-        looped = looped.normalize(headroom=5.0)  # Reduce very loud peaks
+        final_audio = final_audio.normalize(headroom=5.0)  # Reduce very loud peaks
     looped_file = file_path.replace(".wav", f"_looped.wav")
-    looped.export(looped_file, format="wav")
+    final_audio.export(looped_file, format="wav")
     return looped_file
 
-# --- Generate music button (UPDATED: handles multiple loop counts & normalization) ---
+# --- Generate music button ---
 button_label = f"Generate Music (⏳ ~{int(min(duration,30)*3)}s)"
 if st.button(button_label):
     if not prompt:
@@ -133,8 +136,8 @@ if st.button(button_label):
             # Determine how many times to loop
             if duration > 30:
                 repeat_count = duration // 30  # e.g., 90s -> repeat 3 times
-                output_file = make_looped_version(output_file, repeat=repeat_count, normalize=True)
-                st.info(f"🎵 Generated track length: {duration} seconds ({repeat_count} loops of 30s)")
+                output_file = make_looped_version(output_file, repeat=repeat_count, normalize=True, crossfade_ms=500)
+                st.info(f"🎵 Generated track length: {duration} seconds ({repeat_count} loops of 30s with crossfade)")
             else:
                 # Normalize even for single 30s clip
                 audio = AudioSegment.from_wav(output_file).normalize(headroom=5.0)
