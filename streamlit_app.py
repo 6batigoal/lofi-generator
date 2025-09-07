@@ -16,7 +16,7 @@ os.makedirs("generated", exist_ok=True)
 
 # --- Primary Subgenres (refined for AI-friendly generation) ---
 primary_subgenres = [
-    "Chillhop", "Hip-Hop", "Hip-Hop", "Jazz", "Chill Jazz", 
+    "Chillhop", "Hip-Hop", "Jazz", "Chill Jazz", 
     "House", "Vaporwave", "Ambient", "Synthwave", "Dreamy Synth",
     "Indie Rock", "Funk", "Neo-Soul", "Trip-Hop", "Downtempo",
     "Lounge", "Classical", "Piano", "Bossa Nova", "Jazz Fusion", 
